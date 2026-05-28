@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="業務OS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>業務OS v2.4</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e5e3dd;
+    --accent: #2a4d3a;
+    --warning: #8b2e2e;
+    --check-bg: #f4f3ee;
+    --edit-bg: #fff8e1;
+    --edit-accent: #b8860b;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* テキスト入力フィールドのみ選択可能 */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    padding-bottom: 100px;
+    /* iOSのセーフエリア対応 */
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    /* iOSのスクロールを滑らかに */
+    -webkit-overflow-scrolling: touch;
+    /* iOS Safariのオーバースクロール防止 */
+    overscroll-behavior-y: contain;
+  }
+
+  /* iOSでのボタンスタイルリセット */
+  button {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+    /* iOSでのタッチハイライト */
+    -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+  }
+
+  body.edit-mode {
+    background: var(--edit-bg);
+  }
+
+  header {
+    background: var(--surface);
+    padding: 16px 16px 12px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  body.edit-mode header {
+    background: var(--edit-bg);
+    border-bottom-color: var(--edit-accent);
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .edit-toggle {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 8px 14px;
+    font-size: 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  body.edit-mode .edit-toggle {
+    background: var(--edit-accent);
+    color: white;
+    border-color: var(--edit-accent);
+  }
+
+  .controls {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .control-btn {
+    flex: 1;
+    min-width: 0;
+    background: var(--check-bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  .control-btn:active {
+    background: var(--line);
+  }
+
+  .edit-only {
+    display: none;
+  }
+
+  body.edit-mode .edit-only {
+    display: block;
+  }
+
+  body.edit-mode .control-btn.edit-only {
+    display: flex;
+  }
+
+  main {
+    padding: 8px 12px;
+  }
+
+  .category {
+    margin-bottom: 20px;
+  }
+
+  .category-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    padding: 8px 4px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .category-title-text {
+    flex: 1;
+  }
+
+  body.edit-mode .category-title-text {
+    background: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px dashed var(--edit-accent);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  .category-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .category-delete-btn {
+    display: none;
+    background: none;
+    border: 1px solid var(--warning);
+    color: var(--warning);
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  body.edit-mode .category-delete-btn {
+    display: inline-block;
+  }
+
+  .checklist {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 6px;
+    box-shadow: var(--shadow);
+  }
+
+  .checklist-header {
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    min-height: 48px;
+    gap: 8px;
+  }
+
+  .checklist-header:active {
+    background: var(--check-bg);
+  }
+
+  .checklist-title {
+    font-size: 15px;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  body.edit-mode .checklist-title {
+    background: var(--edit-bg);
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px dashed var(--edit-accent);
+  }
+
+  .edit-info-btn {
+    display: none;
+    width: 100%;
+    background: var(--edit-bg);
+    border: 1px dashed var(--edit-accent);
+    color: var(--edit-accent);
+    padding: 6px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 4px 0 8px;
+    font-family: inherit;
+  }
+
+  body.edit-mode .edit-info-btn {
+    display: block;
+  }
+
+  .checklist-title-input {
+    font-size: 15px;
+    font-weight: 500;
+    flex: 1;
+    border: 1px solid var(--edit-accent);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-family: inherit;
+    background: white;
+  }
+
+  .checklist-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .progress {
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arrow {
+    font-size: 12px;
+    color: var(--muted);
+    transition: transform 0.2s ease;
+  }
+
+  .checklist.open .arrow {
+    transform: rotate(90deg);
+  }
+
+  .checklist-body {
+    display: none;
+    padding: 4px 16px 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .checklist.open .checklist-body {
+    display: block;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+    min-height: 44px;
+  }
+
+  .item:last-child {
+    border-bottom: none;
+  }
+
+  .item-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid var(--muted);
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+
+  .item.checked .item-checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .item.checked .item-checkbox::after {
+    content: "✓";
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .item-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  .item.checked .item-text {
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  .item-text-input {
+    flex: 1;
+    font-size: 14px;
+    border: 1px solid var(--edit-accent);
+    padding: 6px 8px;
+    border-radius: 3px;
+    font-family: inherit;
+    background: white;
+  }
+
+  .item-delete {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--warning);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+  }
+
+  body.edit-mode .item-delete {
+    display: block;
+  }
+
+  .move-buttons {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 4px;
+  }
+
+  body.edit-mode .move-buttons {
+    display: flex;
+  }
+
+  .move-btn {
+    background: var(--edit-bg);
+    border: 1px solid var(--edit-accent);
+    color: var(--edit-accent);
+    width: 28px;
+    height: 18px;
+    font-size: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .move-btn:active {
+    background: var(--edit-accent);
+    color: white;
+  }
+
+  .move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .list-move-buttons {
+    display: none;
+    gap: 4px;
+    margin-right: 6px;
+  }
+
+  body.edit-mode .list-move-buttons {
+    display: flex;
+  }
+
+  .list-move-btn {
+    background: var(--edit-bg);
+    border: 1px solid var(--edit-accent);
+    color: var(--edit-accent);
+    width: 32px;
+    height: 28px;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .list-move-btn:active {
+    background: var(--edit-accent);
+    color: white;
+  }
+
+  .list-move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .cat-move-buttons {
+    display: none;
+    gap: 4px;
+    margin-right: 6px;
+  }
+
+  body.edit-mode .cat-move-buttons {
+    display: flex;
+  }
+
+  .cat-move-btn {
+    background: var(--edit-bg);
+    border: 1px solid var(--edit-accent);
+    color: var(--edit-accent);
+    width: 28px;
+    height: 24px;
+    font-size: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cat-move-btn:active {
+    background: var(--edit-accent);
+    color: white;
+  }
+
+  .cat-move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .add-item-btn {
+    display: none;
+    width: 100%;
+    background: var(--edit-bg);
+    border: 1px dashed var(--edit-accent);
+    color: var(--edit-accent);
+    padding: 10px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+    font-family: inherit;
+  }
+
+  body.edit-mode .add-item-btn {
+    display: block;
+  }
+
+  .delete-list-btn {
+    display: none;
+    width: 100%;
+    background: #fdf6f6;
+    border: 1px dashed var(--warning);
+    color: var(--warning);
+    padding: 8px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+    font-family: inherit;
+  }
+
+  body.edit-mode .delete-list-btn {
+    display: block;
+  }
+
+  .add-list-btn {
+    display: none;
+    background: var(--edit-bg);
+    border: 1px dashed var(--edit-accent);
+    color: var(--edit-accent);
+    padding: 4px 12px;
+    font-size: 11px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  body.edit-mode .add-list-btn {
+    display: inline-block;
+  }
+
+  .info-box {
+    background: var(--check-bg);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+
+  .warning-box {
+    background: #fdf6f6;
+    border: 1px solid #e8d0d0;
+    color: var(--warning);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+
+  /* モーダル */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.show {
+    display: flex;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .modal h2 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--ink);
+    margin: 8px 0;
+    line-height: 1.6;
+  }
+
+  .modal p strong {
+    color: var(--accent);
+  }
+
+  .modal textarea {
+    width: 100%;
+    min-height: 200px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 16px; /* iOSでズーム防止 (16px以上必須) */
+    resize: vertical;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .modal-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .modal-btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .modal-btn-secondary {
+    background: var(--check-bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+
+  .modal-btn-danger {
+    background: var(--warning);
+    color: white;
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>業務OS</h1>
+      <div class="subtitle">CHECKLIST SYSTEM v2.4</div>
+    </div>
+    <button class="edit-toggle" onclick="toggleEditMode()">編集</button>
+  </div>
+  <div class="controls">
+    <button class="control-btn" onclick="collapseAll()">すべて閉じる</button>
+    <button class="control-btn" onclick="resetAllChecks()">チェックリセット</button>
+    <button class="control-btn" onclick="showExport()">📤 出力</button>
+    <button class="control-btn" onclick="showImport()">📥 読込</button>
+  </div>
+</header>
+
+<main id="main-content">
+  <!-- ここにJavaScriptで動的にカテゴリとリストを生成 -->
+</main>
+
+<!-- バックアップ/復元モーダル -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">バックアップ</h2>
+    <p id="modal-desc"></p>
+    <textarea id="modal-textarea"></textarea>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">閉じる</button>
+      <button class="modal-btn modal-btn-primary" id="modal-action-btn">コピー</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  業務OS v2.4 — iPhone/Android完全対応
+</footer>
+
+<script>
+  // ============================================
+  // データ定義（初期値）
+  // ============================================
+  const DEFAULT_DATA = {
+    categories: [
+      {
+        id: "cat-work",
+        title: "業務 / WORK",
+        lists: [
+          {
+            id: "work-morning",
+            title: "朝の準備",
+            info: "出勤後5〜10分で完了させる",
+            items: [
+              "タスクシステム確認・象限分類（A/B/C/D）",
+              "象限A（即時対応）の有無確認",
+              "本日の訪問予定確認",
+              "医師の出勤状況・休暇者確認",
+              "前日からの引き継ぎ事項確認"
+            ]
+          },
+          {
+            id: "work-pre-visit",
+            title: "訪問前準備",
+            info: "",
+            items: [
+              "本日対応する患者のタスク確認",
+              "訪問ルートの確認",
+              "物品準備：膀胱留置カテーテル",
+              "物品準備：カテーテルチップ",
+              "物品準備：生食",
+              "物品準備：ガーゼ・テープ類",
+              "物品準備：採血スピッツ・血ガス",
+              "物品準備：その他患者個別物品",
+              "中断カルテ作成（1週間以内のもの）",
+              "次回訪問日の確認",
+              "往診カバン内の物品確認"
+            ]
+          },
+          {
+            id: "work-post-visit",
+            title: "訪問後処理",
+            info: "戻り直後の30〜45分で集中処理",
+            items: [
+              "使用物品の補充",
+              "物品の発注（残量チェック）",
+              "申し送り用紙への記載",
+              "処方箋FAX送信（薬局へ）",
+              "FAX送信先への到着確認連絡",
+              "採血検体の提出",
+              "往診カバンへの物品補充",
+              "診療レポートの作成",
+              "外部報告（ケアマネ・訪看）の必要有無確認"
+            ]
+          },
+          {
+            id: "work-phone",
+            title: "電話対応フロー",
+            info: "即出ない・折り返しを基本に",
+            items: [
+              "相手判定：薬局／ケアマネ／訪看／家族",
+              "聞き取り：誰の件か（患者名・ID）",
+              "聞き取り：何が起きたか",
+              "聞き取り：いつ発生か",
+              "聞き取り：対応期限",
+              "聞き取り：折り返し先と希望時間",
+              "即時応答：「承知しました、確認後折返します」",
+              "記録：タスクシステムへ転記"
+            ]
+          },
+          {
+            id: "work-weekly",
+            title: "週次タスク（金曜16:00〜）",
+            info: "",
+            items: [
+              "1週間の未完了タスク棚卸し",
+              "翌週月曜の優先タスク3つを決定",
+              "翌週分の物品在庫予測・発注",
+              "訪看指示書の作成依頼受付状況点検",
+              "前倒し可能タスクの抽出",
+              "残業時間の記録"
+            ]
+          },
+          {
+            id: "work-monthly",
+            title: "月次タスク（月初・第1営業日）",
+            info: "9:00〜13:00を死守。電話対応最小化",
+            items: [
+              "訪看指示書の一括作成・更新",
+              "翌々月の訪問日カレンダー作成",
+              "翌月誕生日患者のバースデーカード一括記入",
+              "保険証期限チェック（全担当患者）",
+              "受給者証期限チェック",
+              "レセプト関連の最終確認",
+              "前月の振り返り・残業時間集計"
+            ]
+          },
+          {
+            id: "work-exception",
+            title: "例外対応フロー",
+            info: "判断に迷ったら：即時判断より「確認後折返し」が正解",
+            items: [
+              "薬局からの日数変更 → 即カルテ修正",
+              "往診依頼（緊急） → 医師確認 → 時間連絡",
+              "家族からの体調悪化 → 症状聞き取り → 医師判断",
+              "他事業所からの照会 → 折返し前提・個人情報注意",
+              "処方箋FAX → 必ず到着確認電話"
+            ]
+          }
+        ]
+      },
+      {
+        id: "cat-life",
+        title: "プライベート / LIFE",
+        lists: [
+          {
+            id: "life-morning",
+            title: "朝の準備",
+            info: "",
+            items: [
+              "天気予報確認",
+              "持ち物：鍵・財布・携帯・充電器",
+              "戸締り",
+              "ゴミの日チェック"
+            ]
+          },
+          {
+            id: "life-travel",
+            title: "旅行準備テンプレ",
+            info: "前々日からの3段階準備",
+            items: [
+              "【前々日】持ち物リスト確認",
+              "【前々日】留守中の対応依頼",
+              "【前日】パッキング",
+              "【前日】予約確認",
+              "【当日】戸締り・電源確認",
+              "【当日】身分証・チケット確認"
+            ]
+          },
+          {
+            id: "life-shopping",
+            title: "買い物テンプレ",
+            info: "",
+            items: [
+              "食料品（在庫切れチェック）",
+              "日用品（トイレットペーパー・洗剤）",
+              "予算上限の確認"
+            ]
+          }
+        ]
+      },
+      {
+        id: "cat-think",
+        title: "思考整理 / NEUMANN MODE",
+        lists: [
+          {
+            id: "think-quadrant",
+            title: "4象限判定フロー",
+            info: "タスクが来たら30秒以内に判定",
+            items: [
+              "象限A：即時判断（30分以内・中断OK）",
+              "象限B：正確処理（バッチ・12:30/16:30）",
+              "象限C：確認のみ（既読で完了・返信不要）",
+              "象限D：自分タスク（個人ToDoへ移送）"
+            ]
+          },
+          {
+            id: "think-fatal",
+            title: "致命的敗北チェック",
+            info: "判断前に必ず確認：マイナス無限大を含むか？",
+            items: [
+              "医療事故リスクはないか？",
+              "個人情報漏洩リスクはないか？",
+              "レセプト返戻リスクはないか？",
+              "期限超過リスクはないか？",
+              "信頼を失う発言・行動はないか？"
+            ]
+          },
+          {
+            id: "think-expected",
+            title: "期待値計算メモ",
+            info: "",
+            items: [
+              "各選択肢を「利得×確率」で評価",
+              "致命的敗北を最優先で排除",
+              "迷ったら5分で終わる最小実験から",
+              "サンクコスト（過去投資）は判断材料にしない",
+              "現在の前提における暫定最適解として提示"
+            ]
+          },
+          {
+            id: "think-stop",
+            title: "判断停止ルール",
+            info: "迷ったら以下のルールに従う",
+            items: [
+              "タスク到着：象限分類のみ→Aだけ即実行",
+              "時間配分：12:30と16:30の固定バッチ死守",
+              "完璧か速さか：常に速さを選ぶ",
+              "新施策追加：既存施策の1ヶ月検証後のみ"
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  // ============================================
+  // データ管理
+  // ============================================
+  const STORAGE_KEY = 'business_os_v2_data';
+  const CHECK_KEY = 'business_os_v2_checks';
+  let data = loadData();
+  let checks = loadChecks();
+  let editMode = false;
+  let storageWarningShown = false;
+
+  // LocalStorageが使えるか判定
+  function isStorageAvailable() {
+    try {
+      const test = '__storage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+  function loadData() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {
+      console.warn('データ読込エラー:', e);
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_DATA));
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch(e) {
+      if (!storageWarningShown) {
+        storageWarningShown = true;
+        alert('データ保存に失敗しました\n\n以下を確認してください：\n・ブラウザのプライベートブラウジングをOFFに\n・ストレージ容量に余裕があるか\n・ブラウザ設定でLocalStorageが有効か');
+      }
+    }
+  }
+
+  function loadChecks() {
+    try {
+      const saved = localStorage.getItem(CHECK_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {
+      console.warn('チェック状態読込エラー:', e);
+    }
+    return {};
+  }
+
+  function saveChecks() {
+    try {
+      localStorage.setItem(CHECK_KEY, JSON.stringify(checks));
+    } catch(e) {
+      console.warn('チェック状態保存エラー:', e);
+    }
+  }
+
+  // ============================================
+  // レンダリング
+  // ============================================
+  function render() {
+    const main = document.getElementById('main-content');
+    main.innerHTML = '';
+
+    data.categories.forEach((category, catIndex) => {
+      const catEl = document.createElement('div');
+      catEl.className = 'category';
+      const isFirstCat = catIndex === 0;
+      const isLastCat = catIndex === data.categories.length - 1;
+      catEl.innerHTML = `
+        <div class="category-title">
+          <div class="cat-move-buttons">
+            <button class="cat-move-btn" onclick="moveCategory('${category.id}', -1)" ${isFirstCat ? 'disabled' : ''}>▲</button>
+            <button class="cat-move-btn" onclick="moveCategory('${category.id}', 1)" ${isLastCat ? 'disabled' : ''}>▼</button>
+          </div>
+          <span class="category-title-text" onclick="editCategoryTitle(event, '${category.id}')">${escapeHtml(category.title)}</span>
+          <div class="category-actions">
+            <button class="add-list-btn" onclick="addList('${category.id}')">+ リスト</button>
+            <button class="category-delete-btn" onclick="deleteCategory('${category.id}')">🗑</button>
+          </div>
+        </div>
+      `;
+
+      category.lists.forEach((list, listIndex) => {
+        const listEl = createListElement(list, listIndex, category.lists.length);
+        catEl.appendChild(listEl);
+      });
+
+      main.appendChild(catEl);
+    });
+
+    // 編集モード時のみ：カテゴリ追加ボタン
+    if (editMode) {
+      const addCatBtn = document.createElement('button');
+      addCatBtn.className = 'add-item-btn';
+      addCatBtn.style.display = 'block';
+      addCatBtn.style.marginTop = '20px';
+      addCatBtn.textContent = '+ カテゴリ追加';
+      addCatBtn.onclick = addCategory;
+      document.getElementById('main-content').appendChild(addCatBtn);
+    }
+  }
+
+  function createListElement(list, listIndex, totalLists) {
+    const listEl = document.createElement('div');
+    listEl.className = 'checklist';
+    listEl.dataset.id = list.id;
+
+    const checkedCount = (list.items || []).filter((_, i) => 
+      checks[list.id + '_' + i]
+    ).length;
+    const totalCount = (list.items || []).length;
+    const isFirstList = listIndex === 0;
+    const isLastList = listIndex === totalLists - 1;
+
+    listEl.innerHTML = `
+      <div class="checklist-header" onclick="handleListHeaderClick(event, this, '${list.id}')">
+        <div class="list-move-buttons">
+          <button class="list-move-btn" onclick="event.stopPropagation(); moveList('${list.id}', -1)" ${isFirstList ? 'disabled' : ''}>▲</button>
+          <button class="list-move-btn" onclick="event.stopPropagation(); moveList('${list.id}', 1)" ${isLastList ? 'disabled' : ''}>▼</button>
+        </div>
+        <div class="checklist-title">${escapeHtml(list.title)}</div>
+        <div class="checklist-meta">
+          <span class="progress">${totalCount > 0 ? checkedCount + '/' + totalCount : ''}</span>
+          <span class="arrow">▶</span>
+        </div>
+      </div>
+      <div class="checklist-body">
+        <button class="edit-info-btn" onclick="editListInfo('${list.id}')">${list.info ? '説明を編集' : '+ 説明を追加'}</button>
+        ${list.info ? `<div class="info-box">${escapeHtml(list.info)}</div>` : ''}
+        <div class="items-container"></div>
+        <button class="add-item-btn" onclick="addItem('${list.id}')">+ 項目追加</button>
+        <button class="delete-list-btn" onclick="deleteList('${list.id}')">🗑 このリストを削除</button>
+      </div>
+    `;
+
+    const itemsContainer = listEl.querySelector('.items-container');
+    (list.items || []).forEach((itemText, index) => {
+      const itemEl = createItemElement(list.id, index, itemText, (list.items || []).length);
+      itemsContainer.appendChild(itemEl);
+    });
+
+    return listEl;
+  }
+
+  function createItemElement(listId, index, text, totalItems) {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'item';
+    const isChecked = checks[listId + '_' + index];
+    if (isChecked) itemEl.classList.add('checked');
+    const isFirst = index === 0;
+    const isLast = index === totalItems - 1;
+
+    itemEl.innerHTML = `
+      <div class="move-buttons">
+        <button class="move-btn" onclick="event.stopPropagation(); moveItem('${listId}', ${index}, -1)" ${isFirst ? 'disabled' : ''}>▲</button>
+        <button class="move-btn" onclick="event.stopPropagation(); moveItem('${listId}', ${index}, 1)" ${isLast ? 'disabled' : ''}>▼</button>
+      </div>
+      <div class="item-checkbox" onclick="toggleCheck(event, '${listId}', ${index})"></div>
+      <div class="item-text" onclick="editItem(event, '${listId}', ${index}, this)">${escapeHtml(text)}</div>
+      <button class="item-delete" onclick="deleteItem(event, '${listId}', ${index})">×</button>
+    `;
+    return itemEl;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ============================================
+  // 操作関数
+  // ============================================
+  function toggleEditMode() {
+    editMode = !editMode;
+    document.body.classList.toggle('edit-mode', editMode);
+    document.querySelector('.edit-toggle').textContent = editMode ? '完了' : '編集';
+    render();
+  }
+
+  function handleListHeaderClick(event, headerEl, listId) {
+    // 編集モード中はリスト名タップで編集
+    if (editMode && event.target.classList.contains('checklist-title')) {
+      event.stopPropagation();
+      editListTitle(listId);
+      return;
+    }
+    // 通常クリックは折りたたみ
+    const checklist = headerEl.closest('.checklist');
+    checklist.classList.toggle('open');
+  }
+
+  function toggleList(event, headerEl) {
+    // 編集モード中でinputをクリックした時は折りたたみしない
+    if (event.target.tagName === 'INPUT') return;
+    const checklist = headerEl.closest('.checklist');
+    checklist.classList.toggle('open');
+  }
+
+  function toggleCheck(event, listId, index) {
+    event.stopPropagation();
+    if (editMode) return; // 編集モード中はチェック無効
+    const key = listId + '_' + index;
+    checks[key] = !checks[key];
+    saveChecks();
+    render();
+    // 開いていたリストを再度開く
+    const listEl = document.querySelector(`[data-id="${listId}"]`);
+    if (listEl) listEl.classList.add('open');
+  }
+
+  function editItem(event, listId, index, textEl) {
+    if (!editMode) {
+      // 編集モードでない時はチェックを切り替える
+      toggleCheck(event, listId, index);
+      return;
+    }
+    event.stopPropagation();
+    
+    const list = findList(listId);
+    if (!list) return;
+    
+    const newText = prompt('項目を編集', list.items[index]);
+    if (newText !== null && newText.trim()) {
+      list.items[index] = newText.trim();
+      saveData();
+      render();
+      const listEl = document.querySelector(`[data-id="${listId}"]`);
+      if (listEl) listEl.classList.add('open');
+    }
+  }
+
+  function deleteItem(event, listId, index) {
+    event.stopPropagation();
+    const list = findList(listId);
+    if (!list) return;
+    
+    if (!confirm(`「${list.items[index]}」を削除しますか？`)) return;
+    
+    list.items.splice(index, 1);
+    
+    // チェック状態も整理
+    const newChecks = {};
+    Object.keys(checks).forEach(key => {
+      if (!key.startsWith(listId + '_')) {
+        newChecks[key] = checks[key];
+      } else {
+        const itemIdx = parseInt(key.split('_').pop());
+        if (itemIdx < index) {
+          newChecks[key] = checks[key];
+        } else if (itemIdx > index) {
+          newChecks[listId + '_' + (itemIdx - 1)] = checks[key];
+        }
+      }
+    });
+    checks = newChecks;
+    
+    saveData();
+    saveChecks();
+    render();
+    const listEl = document.querySelector(`[data-id="${listId}"]`);
+    if (listEl) listEl.classList.add('open');
+  }
+
+  function addItem(listId) {
+    const list = findList(listId);
+    if (!list) return;
+    
+    const newText = prompt('新しい項目を入力');
+    if (newText !== null && newText.trim()) {
+      if (!list.items) list.items = [];
+      list.items.push(newText.trim());
+      saveData();
+      render();
+      const listEl = document.querySelector(`[data-id="${listId}"]`);
+      if (listEl) listEl.classList.add('open');
+    }
+  }
+
+  function addList(categoryId) {
+    const category = data.categories.find(c => c.id === categoryId);
+    if (!category) return;
+    
+    const title = prompt('新しいリストの名前');
+    if (title !== null && title.trim()) {
+      const newList = {
+        id: 'list-' + Date.now(),
+        title: title.trim(),
+        info: '',
+        items: []
+      };
+      category.lists.push(newList);
+      saveData();
+      render();
+    }
+  }
+
+  function deleteList(listId) {
+    const list = findList(listId);
+    if (!list) return;
+    
+    if (!confirm(`リスト「${list.title}」を削除しますか？\nすべての項目が失われます。`)) return;
+    
+    data.categories.forEach(cat => {
+      cat.lists = cat.lists.filter(l => l.id !== listId);
+    });
+    
+    // 関連するチェック状態も削除
+    Object.keys(checks).forEach(key => {
+      if (key.startsWith(listId + '_')) {
+        delete checks[key];
+      }
+    });
+    
+    saveData();
+    saveChecks();
+    render();
+  }
+
+  function addCategory() {
+    const title = prompt('新しいカテゴリの名前（例：健康 / HEALTH）');
+    if (title !== null && title.trim()) {
+      data.categories.push({
+        id: 'cat-' + Date.now(),
+        title: title.trim(),
+        lists: []
+      });
+      saveData();
+      render();
+    }
+  }
+
+  function findList(listId) {
+    for (const cat of data.categories) {
+      const list = cat.lists.find(l => l.id === listId);
+      if (list) return list;
+    }
+    return null;
+  }
+
+  // ============================================
+  // 並び替え関数（v2.3 新機能）
+  // ============================================
+  function moveItem(listId, index, direction) {
+    const list = findList(listId);
+    if (!list || !list.items) return;
+    
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= list.items.length) return;
+    
+    // 項目を入れ替え
+    const temp = list.items[index];
+    list.items[index] = list.items[newIndex];
+    list.items[newIndex] = temp;
+    
+    // チェック状態も追従させる
+    const keyA = listId + '_' + index;
+    const keyB = listId + '_' + newIndex;
+    const checkA = checks[keyA];
+    const checkB = checks[keyB];
+    
+    if (checkA !== undefined) {
+      checks[keyB] = checkA;
+    } else {
+      delete checks[keyB];
+    }
+    if (checkB !== undefined) {
+      checks[keyA] = checkB;
+    } else {
+      delete checks[keyA];
+    }
+    
+    saveData();
+    saveChecks();
+    render();
+    
+    // リストを開いたまま保持
+    const listEl = document.querySelector(`[data-id="${listId}"]`);
+    if (listEl) listEl.classList.add('open');
+  }
+
+  function moveList(listId, direction) {
+    // どのカテゴリのリストか特定
+    let targetCategory = null;
+    let listIndex = -1;
+    
+    for (const cat of data.categories) {
+      const idx = cat.lists.findIndex(l => l.id === listId);
+      if (idx !== -1) {
+        targetCategory = cat;
+        listIndex = idx;
+        break;
+      }
+    }
+    
+    if (!targetCategory) return;
+    
+    const newIndex = listIndex + direction;
+    if (newIndex < 0 || newIndex >= targetCategory.lists.length) return;
+    
+    // リストを入れ替え
+    const temp = targetCategory.lists[listIndex];
+    targetCategory.lists[listIndex] = targetCategory.lists[newIndex];
+    targetCategory.lists[newIndex] = temp;
+    
+    saveData();
+    render();
+  }
+
+  function moveCategory(categoryId, direction) {
+    const catIndex = data.categories.findIndex(c => c.id === categoryId);
+    if (catIndex === -1) return;
+    
+    const newIndex = catIndex + direction;
+    if (newIndex < 0 || newIndex >= data.categories.length) return;
+    
+    // カテゴリを入れ替え
+    const temp = data.categories[catIndex];
+    data.categories[catIndex] = data.categories[newIndex];
+    data.categories[newIndex] = temp;
+    
+    saveData();
+    render();
+  }
+
+  function editCategoryTitle(event, categoryId) {
+    if (!editMode) return;
+    event.stopPropagation();
+    const category = data.categories.find(c => c.id === categoryId);
+    if (!category) return;
+    
+    const newTitle = prompt('カテゴリ名を編集', category.title);
+    if (newTitle !== null && newTitle.trim()) {
+      category.title = newTitle.trim();
+      saveData();
+      render();
+    }
+  }
+
+  function deleteCategory(categoryId) {
+    const category = data.categories.find(c => c.id === categoryId);
+    if (!category) return;
+    
+    const listCount = category.lists.length;
+    let itemCount = 0;
+    category.lists.forEach(l => itemCount += (l.items || []).length);
+    
+    const message = `カテゴリ「${category.title}」を削除しますか？\n\n` +
+      `この操作で以下が失われます：\n` +
+      `・リスト ${listCount}個\n` +
+      `・項目 ${itemCount}個\n` +
+      `・すべてのチェック状態\n\n` +
+      `※この操作は取り消せません`;
+    
+    if (!confirm(message)) return;
+    if (!confirm('本当に削除してよろしいですか？（最終確認）')) return;
+    
+    // 関連するチェック状態を削除
+    category.lists.forEach(list => {
+      Object.keys(checks).forEach(key => {
+        if (key.startsWith(list.id + '_')) {
+          delete checks[key];
+        }
+      });
+    });
+    
+    data.categories = data.categories.filter(c => c.id !== categoryId);
+    saveData();
+    saveChecks();
+    render();
+  }
+
+  function editListTitle(listId) {
+    const list = findList(listId);
+    if (!list) return;
+    
+    const newTitle = prompt('リスト名を編集', list.title);
+    if (newTitle !== null && newTitle.trim()) {
+      list.title = newTitle.trim();
+      saveData();
+      render();
+      const listEl = document.querySelector(`[data-id="${listId}"]`);
+      if (listEl) listEl.classList.add('open');
+    }
+  }
+
+  function editListInfo(listId) {
+    const list = findList(listId);
+    if (!list) return;
+    
+    const newInfo = prompt('リストの説明文を編集（空欄で削除）', list.info || '');
+    if (newInfo !== null) {
+      list.info = newInfo.trim();
+      saveData();
+      render();
+      const listEl = document.querySelector(`[data-id="${listId}"]`);
+      if (listEl) listEl.classList.add('open');
+    }
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.checklist').forEach(c => c.classList.remove('open'));
+  }
+
+  function resetAllChecks() {
+    if (!confirm('すべてのチェックをリセットしますか？')) return;
+    checks = {};
+    saveChecks();
+    render();
+  }
+
+  // ============================================
+  // バックアップ/復元
+  // ============================================
+  function showExport() {
+    const now = new Date();
+    const dateStr = now.getFullYear() + '/' + 
+                    String(now.getMonth() + 1).padStart(2, '0') + '/' + 
+                    String(now.getDate()).padStart(2, '0') + ' ' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+    
+    const exportData = {
+      _meta: {
+        version: '2.2',
+        savedAt: dateStr,
+        note: '業務OS バックアップデータ'
+      },
+      data: data,
+      checks: checks
+    };
+    const json = JSON.stringify(exportData, null, 2);
+    
+    document.getElementById('modal-title').textContent = '📤 データ出力';
+    document.getElementById('modal-desc').innerHTML = 
+      '<strong>保存日時：' + dateStr + '</strong><br><br>' +
+      '【使い方】<br>' +
+      '1. 下のコピーボタンでJSONを取得<br>' +
+      '2. Googleキープで新規メモ作成<br>' +
+      '3. タイトル：「業務OS_' + dateStr.split(' ')[0].replace(/\//g, '') + '」<br>' +
+      '4. 本文に貼り付け<br>' +
+      '5. 別端末でも同じキープからコピーして「読込」で復元可能';
+    document.getElementById('modal-textarea').value = json;
+    document.getElementById('modal-action-btn').textContent = '📋 コピー';
+    document.getElementById('modal-action-btn').onclick = () => {
+      const textarea = document.getElementById('modal-textarea');
+      
+      // iOS Safari対応：テキストエリアを読み取り専用解除して選択
+      textarea.removeAttribute('readonly');
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, 99999); // iOSでの範囲選択
+      
+      let copySuccess = false;
+      
+      // 方法1: 新しいClipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+        navigator.clipboard.writeText(textarea.value).then(() => {
+          document.getElementById('modal-action-btn').textContent = '✓ コピー完了';
+          setTimeout(() => {
+            document.getElementById('modal-action-btn').textContent = '📋 コピー';
+          }, 2000);
+        }).catch(() => {
+          // フォールバック: execCommand
+          tryExecCommandCopy(textarea);
+        });
+      } else {
+        // 方法2: 旧式 execCommand（file://や非HTTPSで使用）
+        tryExecCommandCopy(textarea);
+      }
+    };
+    
+    function tryExecCommandCopy(textarea) {
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          document.getElementById('modal-action-btn').textContent = '✓ コピー完了';
+          setTimeout(() => {
+            document.getElementById('modal-action-btn').textContent = '📋 コピー';
+          }, 2000);
+        } else {
+          showManualCopyInstruction();
+        }
+      } catch (e) {
+        showManualCopyInstruction();
+      }
+    }
+    
+    function showManualCopyInstruction() {
+      alert('自動コピーができませんでした\n\n手動でコピーしてください：\n1. テキスト欄を長押し\n2. 「すべてを選択」\n3. 「コピー」をタップ');
+    }
+    document.getElementById('modal-overlay').classList.add('show');
+  }
+
+  function showImport() {
+    document.getElementById('modal-title').textContent = '📥 データ読込';
+    document.getElementById('modal-desc').innerHTML = 
+      '<strong>⚠ 注意：現在のデータは上書きされます</strong><br><br>' +
+      '【使い方】<br>' +
+      '1. Googleキープから業務OSのJSONをコピー<br>' +
+      '2. 下のテキスト欄に貼り付け<br>' +
+      '3. 「読込」をタップ<br><br>' +
+      '※読込前に現在のデータも一度「出力」しておくことを推奨';
+    document.getElementById('modal-textarea').value = '';
+    document.getElementById('modal-textarea').placeholder = 'ここにJSONを貼り付け...';
+    document.getElementById('modal-action-btn').textContent = '📥 読込実行';
+    document.getElementById('modal-action-btn').onclick = () => {
+      const text = document.getElementById('modal-textarea').value.trim();
+      if (!text) {
+        alert('JSONテキストを貼り付けてください');
+        return;
+      }
+      try {
+        const imported = JSON.parse(text);
+        if (!imported.data || !imported.data.categories) {
+          alert('データ形式が正しくありません\n業務OSで出力したJSONか確認してください');
+          return;
+        }
+        const savedAt = imported._meta ? imported._meta.savedAt : '不明';
+        const catCount = imported.data.categories.length;
+        let listCount = 0;
+        let itemCount = 0;
+        imported.data.categories.forEach(c => {
+          listCount += c.lists.length;
+          c.lists.forEach(l => itemCount += (l.items || []).length);
+        });
+        
+        const confirmMsg = `以下のデータで上書きします：\n\n` +
+          `保存日時：${savedAt}\n` +
+          `カテゴリ：${catCount}個\n` +
+          `リスト：${listCount}個\n` +
+          `項目：${itemCount}個\n\n` +
+          `現在のデータは消えます。よろしいですか？`;
+        
+        if (!confirm(confirmMsg)) return;
+        
+        data = imported.data;
+        checks = imported.checks || {};
+        saveData();
+        saveChecks();
+        render();
+        closeModal();
+        alert('読込完了\n保存日時：' + savedAt);
+      } catch(e) {
+        alert('データの解析に失敗しました\nJSONが正しくコピーされているか確認してください\n\n詳細：' + e.message);
+      }
+    };
+    document.getElementById('modal-overlay').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+  }
+
+  // ============================================
+  // 初期化
+  // ============================================
+  
+  // ストレージ利用可能性チェック
+  if (!isStorageAvailable()) {
+    setTimeout(() => {
+      alert('⚠ データ保存機能が使えません\n\nプライベートブラウジングモードがONになっている可能性があります。\n通常モードでお使いください。\n\nこのまま使用も可能ですが、チェックや編集内容が保存されません。');
+    }, 500);
+  }
+  
+  // iOSのSafariでpassive eventの推奨対応
+  document.addEventListener('touchstart', function() {}, {passive: true});
+  
+  render();
+</script>
+
+</body>
+</html>
